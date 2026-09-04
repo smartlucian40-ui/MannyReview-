@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MANNYREVIEW</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,-apple-system,sans-serif}
+body{background:#0d1117;color:#fff;padding:12px;max-width:600px;margin:auto}
+header{text-align:center;padding:15px 0}
+h1{color:#f59e0b;font-size:1.6rem}
+p.bio{color:#8b949e;font-size:0.85rem;margin-top:4px}
+input,select,button{width:100%;padding:10px;margin:5px 0;border-radius:8px;border:1px solid #30363d;background:#161b22;color:#fff;font-size:0.9rem}
+button{background:#f59e0b;color:#000;font-weight:700;border:none;cursor:pointer}
+button.admin-btn{background:#21262d;color:#8b949e;font-size:0.75rem;padding:6px;width:auto;float:right}
+.cats{display:flex;gap:6px;overflow-x:auto;padding:8px 0;scrollbar-width:none}
+.cat-pill{padding:5px 12px;border-radius:20px;background:#21262d;white-space:nowrap;font-size:0.8rem;border:1px solid #30363d;cursor:pointer}
+.cat-pill.active{background:#f59e0b;color:#000}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.card{background:#161b22;border:1px solid #30363d;border-radius:10px;overflow:hidden;display:flex;flex-direction:column}
+.card img{width:100%;height:140px;object-fit:cover;background:#0d1117}
+.card-body{padding:8px;flex:1;display:flex;flex-direction:column}
+.card-cat{font-size:0.65rem;color:#f59e0b;font-weight:700;text-transform:uppercase}
+.card-title{font-size:0.85rem;margin:4px 0;font-weight:600;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card-desc{font-size:0.75rem;color:#8b949e;margin-bottom:8px;flex:1;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.btn-amz{background:#f59e0b;color:#000;font-weight:700;padding:8px;border-radius:6px;text-align:center;text-decoration:none;font-size:0.8rem;display:block}
+.admin-sec{display:none;background:#161b22;border:2px solid #f59e0b;padding:12px;border-radius:10px;margin:15px 0}
+footer{margin-top:30px;padding:15px;text-align:center;font-size:0.75rem;color:#8b949e;border-top:1px solid #21262d}
+</style>
+</head>
+<body>
+
+<button class="admin-btn" onclick="toggleAdmin()">Admin 🔒</button>
+<div style="clear:both"></div>
+
+<header>
+  <h1>MANNYREVIEW</h1>
+  <p class="bio">Authentic YouTube Shorts Product Finds & Deals</p>
+</header>
+
+<input type="text" id="search" placeholder="🔍 Search products, brands, categories..." oninput="render()">
+<div class="cats" id="cats"></div>
+
+<!-- Admin Panel -->
+<div id="adminPanel" class="admin-sec">
+  <h3 style="color:#f59e0b;margin-bottom:8px">Admin: Add Product</h3>
+  <input type="text" id="pName" placeholder="Product Name *">
+  <input type="text" id="pBrand" placeholder="Brand (e.g. Anker)">
+  <select id="pCat">
+    <option>Tech & Gadgets</option><option>Home</option><option>Kitchen</option>
+    <option>Fitness</option><option>Beauty</option><option>Car Accessories</option>
+    <option>Everyday Essentials</option><option>Gift Ideas</option>
+  </select>
+  <input type="url" id="pUrl" placeholder="Amazon Affiliate Link *">
+  <input type="url" id="pImg" placeholder="Image URL (e.g. https://...) *">
+  <input type="text" id="pDesc" placeholder="Short 1-sentence description *">
+  <button onclick="addProduct()">+ SAVE PRODUCT</button>
+  <div id="adminList" style="margin-top:10px"></div>
+</div>
+
+<!-- Product Grid -->
+<div class="grid" id="grid"></div>
+
+<footer>
+  <p>“As an Amazon Associate, MannyReview earns from qualifying purchases.”</p>
+  <p style="margin-top:6px">© 2026 MannyReview</p>
+</footer>
+
+<script>
+const CATS = ["All","Tech & Gadgets","Home","Kitchen","Fitness","Beauty","Car Accessories","Everyday Essentials","Gift Ideas"];
+let currentCat = "All";
+let prods = JSON.parse(localStorage.getItem('mr_prods') || '[]');
+
+if(prods.length === 0){
+  prods = [
+    {id:1, name:"Anker Wireless Magnetic Charger", brand:"Anker", cat:"Tech & Gadgets", url:"https://amazon.com", img:"https://images.unsplash.com/photo-1586953208448-b95a79798f07?w=400", desc:"Fast Qi2 charging for iPhone and AirPods."},
+    {id:2, name:"Ninja Compact Air Fryer 4-in-1", brand:"Ninja", cat:"Kitchen", url:"https://amazon.com", img:"https://images.unsplash.com/photo-1585515320310-259814833e62?w=400", desc:"Roast, reheat, and fry quickly with 400°F heat."}
+  ];
+  localStorage.setItem('mr_prods', JSON.stringify(prods));
+}
+
+function renderCats(){
+  document.getElementById('cats').innerHTML = CATS.map(c => 
+    `<span class="cat-pill ${c===currentCat?'active':''}" onclick="setCat('${c}')">${c}</span>`
+  ).join('');
+}
+
+function setCat(c){ currentCat = c; renderCats(); render(); }
+
+function render(){
+  const q = document.getElementById('search').value.toLowerCase();
+  const list = prods.filter(p => {
+    const matchCat = currentCat === "All" || p.cat === currentCat;
+    const matchQ = (p.name + p.brand + p.desc + p.cat).toLowerCase().includes(q);
+    return matchCat && matchQ;
+  });
+
+  document.getElementById('grid').innerHTML = list.map(p => `
+    <div class="card">
+      <img src="${p.img}" alt="${p.name}" onerror="this.src='https://placehold.co/300x200/161b22/fff?text=Product'">
+      <div class="card-body">
+        <span class="card-cat">${p.cat}</span>
+        <div class="card-title">${p.name}</div>
+        <div class="card-desc">${p.desc}</div>
+        <a href="${p.url}" target="_blank" rel="nofollow noopener" class="btn-amz">View on Amazon</a>
+      </div>
+    </div>
+  `).join('') || '<div style="grid-column:1/-1;text-align:center;padding:20px;color:#8b949e">No products found.</div>';
+}
+
+function toggleAdmin(){
+  const p = prompt("Enter Admin Passcode:");
+  if(p === "manny2025"){
+    const panel = document.getElementById('adminPanel');
+    panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+    renderAdminList();
+  } else if(p !== null) {
+    alert("Incorrect passcode!");
+  }
+}
+
+function addProduct(){
+  const name = document.getElementById('pName').value.trim();
+  const brand = document.getElementById('pBrand').value.trim();
+  const cat = document.getElementById('pCat').value;
+  const url = document.getElementById('pUrl').value.trim();
+  const img = document.getElementById('pImg').value.trim();
+  const desc = document.getElementById('pDesc').value.trim();
+
+  if(!name || !url || !img || !desc){ alert("Please fill all required fields!"); return; }
+
+  prods.unshift({ id: Date.now(), name, brand, cat, url, img, desc });
+  localStorage.setItem('mr_prods', JSON.stringify(prods));
+  render(); renderAdminList();
+  alert("Product added!");
+  document.getElementById('pName').value = '';
+  document.getElementById('pUrl').value = '';
+  document.getElementById('pImg').value = '';
+  document.getElementById('pDesc').value = '';
+}
+
+function delProduct(id){
+  if(confirm("Delete this product?")){
+    prods = prods.filter(p => p.id !== id);
+    localStorage.setItem('mr_prods', JSON.stringify(prods));
+    render(); renderAdminList();
+  }
+}
+
+function renderAdminList(){
+  document.getElementById('adminList').innerHTML = prods.map(p => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #30363d;font-size:0.75rem">
+      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px">${p.name}</span>
+      <button onclick="delProduct(${p.id})" style="width:auto;padding:3px 8px;background:#ef4444;color:#fff;font-size:0.7rem">Delete</button>
+    </div>
+  `).join('');
+}
+
+renderCats();
+render();
+</script>
+</body>
+</html>
